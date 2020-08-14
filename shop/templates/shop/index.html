@@ -1,0 +1,259 @@
+{% extends 'shop/basic.html' %}
+{% block css %}
+
+.container{
+width: auto;
+height: auto;
+}
+
+.col-md-3
+{
+display: inline-block;
+margin-left:-4px;
+}
+
+.carousel-indicators .active {
+background-color: blue;
+}
+
+.carousel-indicators li{
+background-color: #7270fc;
+}
+
+.col-md-3 img{
+
+width: 170px;
+height: 200px;
+}
+
+body .carousel-indicator li{
+background-color: blue;
+}
+
+body .carousel-indicators{
+bottom: -40px;
+}
+
+body .carousel-control-prev-icon,
+body .carousel-control-next-icon{
+background-color: blue;
+}
+
+.carousel-control-prev,
+.carousel-control-next{
+top: auto;
+bottom: auto;
+
+}
+body .no-padding{
+padding-left: 0,
+padding-right: 0;
+}
+{% endblock %}
+
+{% block title %} Home {% endblock  %}
+
+{% block body %}
+
+{% load static %}
+
+<div class="container">
+
+  <!-- Slider -->
+  {% for product, range, nslides in products %}
+  <div><br>
+    <h1 class="text-center"><span class="badge badge-danger">{{product.0.catagory}}</span></h1><br>
+    <div>
+
+      <div id="demo{{forloop.counter}}" class="carousel slide my-3" data-ride="carousel">
+        <ul class="carousel-indicators my-9">
+          <li data-target="#demo{{forloop.counter}}" data-slide-to="0" class="active"></li>
+
+          {% for i in range %}
+          <li data-target="#demo{{forloop.parentloop.counter}}" data-slide-to="{{i}}"></li>
+          {% endfor %}
+        </ul>
+
+        <!-- .........Slideshow starts here................ -->
+        <div class="container carousel-inner no-padding">
+          <div class="carousel-item active">
+
+            {% for i in product %}
+
+            <div class="col-xs-3 col-sm-3 col-md-3 my-8">
+              <div class="card align-items-center" style="width: 18rem;height: 25rem">
+                <img src='/media/{{i.image}}' class="card-img-top" alt="...">
+                <div class="card-body">
+                  <h5 class="card-title" id="namepr{{i.id}}">{{i.product_name|slice:":16"}}...</h5>
+                  <p id="descpr{{i.id}}" class="card-text">{{i.desc|slice:":25"}}...</p>
+                  <p id="pricepr{{i.id}}"><b>Rs. {{i.price}}</b></p>
+
+                  <!-- ......................Buttons.............................. -->
+
+                  <span id="div{{i.id}}" class="divpr">
+                    <a class="Addtocart" id="cart{{i.id}}" data-prodid="{{i.id}}" data-price="{{i.price}}"
+                      data-length="{{l}}">
+                      <button class="btn btn-primary">Add To Cart</button>
+                    </a>
+                  </span>
+
+
+
+                  <!-- ..............Privious................for local storage...... 
+                <span id="divpr{{i.id}}" class="divpr">
+                  <button id='pr{{i.id}}' class="btn btn-primary cart">Add to Cart</button>
+                </span>
+                -->
+                  <span>
+                    <a href="/shop/products/{{i.id}}"><button id='qr{{i.id}}' class="btn btn-primary quick-inline">Quick
+                        View</button></a>
+                  </span>
+
+
+                </div>
+              </div>
+            </div>
+
+            {% if forloop.counter|divisibleby:4 and forloop.counter > 0 and not forloop.last %}
+          </div>
+          <div class="carousel-item">
+            {% endif %}
+
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      <!-- ..........left and right controls for the slide.......... -->
+      <a class="carousel-control-prev" href="#demo{{forloop.counter}}" data-slide="prev">
+        <span class="carousel-control-prev-icon"></span>
+      </a>
+      <a class="carousel-control-next" href="#demo{{forloop.counter}}" data-slide="next">
+        <span class="carousel-control-next-icon"></span>
+      </a>
+    </div><br><br>
+
+    {% endfor %}
+  </div>
+</div>
+
+
+{% endblock %}
+
+
+
+{% block js %}
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<script type="text/javascript">
+  // Applying new way using Ajax
+
+  $(document).ready(function () {
+
+    // Cart Icon update
+    cartLength();
+
+    // Chainging to go to cart if cart is not empty
+    goToCart();
+  })
+
+  // Add to cart.................................................
+  $('.Addtocart').click(function () {
+
+    var id, price;
+    id = $(this).attr('data-prodid');
+    price = $(this).attr('data-price');
+
+    $.ajax({
+      type: "POST",
+      url: "http://127.0.0.1:8000/viewcart/",
+      data: {
+        prod_id: id,
+        user_id: '1',
+        quantity: 1,
+        price: price,
+        csrfmiddlewaretoken: '{{ csrf_token }}'
+      },
+    })
+    $('#div' + id).html("<a href='/shop/cart'><button id='pr{{i.id}}' class='btn btn-primary cart'>Go to Cart</button></a>");
+    cartLength();
+  });
+
+  // update to go to cart when page is loaded again...........
+  function goToCart() {
+
+    $.get("http://127.0.0.1:8000/listofids/", function (data) {
+      if (data != null) {
+        for (var item in data) {
+          $('#div' + data[item]).html("<a href='/shop/cart'><button id='pr{{i.id}}' class='btn btn-primary cart'>Go to Cart</button></a>");
+        }
+      }
+    })
+  }
+
+  // Cart icon handel...........................................
+  function cartLength() {
+    $.get("http://127.0.0.1:8000/cartlength/", function (data) {
+      $("#cart").text(data)
+    })
+  }
+
+</script>
+
+
+{% endblock %}
+
+
+
+
+
+
+
+<!-- <script>
+
+// Find out cart items using localstorage..................................................
+
+  if (localStorage.getItem('cart') == null) {
+    var cart = {};
+  }
+  else {
+    cart = JSON.parse(localStorage.getItem('cart'));
+    document.getElementById('cart').innerHTML = Object.keys(cart).length;
+
+    // converting prvios items in cart to go to cart
+    goToCart(cart);
+  }
+
+  // When add to cart is clicked
+  $('.cart').click(function () {
+
+    var idstr = this.id.toString();
+
+    if (cart[idstr] != undefined) {
+      //qty = cart[idstr][0] + 1;
+    }
+    else {
+      id = parseInt(this.id.slice(2,));
+      qty = 1;
+      name = document.getElementById('name' + idstr).innerHTML;
+      price = parseInt(document.getElementById('price' + idstr).innerHTML.slice(7, 11));
+      totalPrice = price;
+
+      cart[idstr] = [id, qty, name, price, totalPrice];
+
+    }
+    console.log(cart);
+
+    localStorage.setItem('cart', JSON.stringify(cart));
+    document.getElementById('cart').innerHTML = Object.keys(cart).length;
+
+    goToCart(cart);
+
+  });
+  // update to go to cart
+  function goToCart(cart) {
+    for (var item in cart) {
+      document.getElementById('div' + item).innerHTML = "<a href='/shop/cart'><button id='pr{{i.id}}' class='btn btn-primary cart'>Go to Cart</button></a>";
+    }
+  }
+
+</script> -->

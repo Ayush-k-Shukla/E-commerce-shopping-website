@@ -1,0 +1,206 @@
+{% extends 'shop/basic.html' %}
+
+{% load test %}
+
+{% block title %} Cart {% endblock  %}
+
+{% block css %}
+
+input[type="text"] {
+font-weight: bold;
+text-align: center;
+}
+
+{% endblock  %}
+
+{% block body %}
+
+{% load static %}
+
+<div class="container">
+    <div class="col my-4">
+        <h1 class="container text-center text-success"> My Awesome Cart Review Your Cart Items </h1>
+        <div>
+            <ul class="list-group my-4" id="items">
+                <!-- Content from Cart-->
+
+                {% if cart %}
+
+                    {% for item,i,qty in cart %}
+                    
+                        <div class="card mb-3" id="itemdiv{{i}}" style="max-width: 100%;">
+                            <div class="row no-gutters">
+                                <div class="col-md-4">
+                                    <img src="#" class="card-img" alt="...">
+                                </div>
+                                <div class="col-md-8">
+                                    <div class="card-body">
+                                        <h5 class="card-title">{{item.product_name}}</h5><br>
+                                        <p class="card-text"><b class="text-secondary">Price : </b><b>Rs.</b> <b id="mainprice{{i}}">{{item.price}}</p>
+                                        
+                                        <p class="card-text price" id="pri{{i}}" data-price={{item.price}}><b class="text-secondary">Total Price : </b><b>Rs. </b><b calss="tprice" id="totalprice{{i}}">{% multiply qty item.price %}</b></p><br>
+                                        
+                                        <!-- Button for - and + -->
+                                        <div class="row no-gutters">
+                                           <div class="col-md-6">
+                                             <span class="minplu">
+                                                <button  id="minus{{i}}" class="btn btn-info minus">-</button>
+                                                <input type="text" id="text{{i}}" class="inpt" value="{{qty}}" size="1" align='center'></input>
+                                                <button id="plus{{i}}" class="btn btn-info plus">+</button>
+                                                </span>
+                                            </div>
+
+                                            <!-- Adding Delete Item Button -->
+                                            <div class="col-md-4">
+                                                <span class="delete">
+                                                    <button id="del{{i}}" class="btn btn-danger del"> Delet Item </button>
+                                                </span>
+                                            </div>
+                                        </div>  
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    {% endfor %}
+
+                    <br><br><div id="checkout" class="container text-center">
+                        <a href="/shop/checkout">
+                            <button class="btn btn-success cart"> Place Order </button>
+                        </a>
+                    </div>
+                
+                {% endif %}
+
+            </ul>
+        </div>
+    </div>
+</div>
+
+
+{% endblock  %}
+
+{% block js %}
+
+{% csrf_token %}
+
+<script type="text/javascript">
+// using jQuery to get Csrftoken
+const csrftoken = jQuery("[name=csrfmiddlewaretoken]").val();
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<script type="text/javascript">
+
+$(document).ready(function(){
+    cartLength();
+
+})
+
+// Delete click.........................................
+    $('.del').click(function(){
+        var id = this.id.slice(3,);
+        $.ajax({
+            type : 'DELETE',
+            url : 'http://127.0.0.1:8000/viewcart/'+id,
+            headers: { "X-CSRFToken": csrftoken },
+        }).catch(function(err){
+            console.log('Error is: ',err);
+        })
+        $(`#itemdiv${id}`).hide();
+        cartLength();
+    })
+
+
+// click on (-) icon...................................
+$('.minus').click(function(){
+    var id = this.id.slice(5,);
+    var pri = parseInt($("#mainprice"+id).text());
+    var count = parseInt($('#text'+id).val());
+    count = count - 1;
+    if (count>=1){
+        pri = (count)*(pri);
+        $('#text'+id).val(count);
+        $('#totalprice'+id).text(pri);
+        updateApi(id,count,pri);
+    }
+    
+})
+
+
+// click on (+) icon..................................
+$('.plus').click(function(){
+    var id = this.id.slice(4,);
+    var pri = parseInt($("#mainprice"+id).text());
+    var count = parseInt($('#text'+id).val());
+    count = count + 1;
+    pri = (count)*(pri);
+    $('#text'+id).val(count);
+    $('#totalprice'+id).text(pri);
+    updateApi(id,count,pri);
+})
+
+// Handling input field..................................
+$('.inpt').keyup(function(){
+    var id = this.id.slice(4,);
+    var pri = parseInt($("#mainprice"+id).text());
+    count = parseInt($('#text'+id).val());
+    if (count>=1){
+        pri = (count)*(pri);
+        $('#text'+id).val(count);
+        $('#totalprice'+id).text(pri);
+    }
+})
+
+// If user haven't given any input or less than one......
+$('.inpt').blur(function(){
+    var id, count, pri;
+    id = this.id.slice(4,);
+    var pri = parseInt($("#mainprice"+id).text());
+    count = parseInt($('#text'+id).val());
+    pri = (pri)*(count);
+    if (isNaN(count) || count < 1){
+            pri = parseInt($('#mainprice'+id).text());
+            count = 1;
+            
+            $('#text'+id).val(count);
+            $('#totalprice'+id).text(pri);
+        }
+    updateApi(id, count, pri);
+    })
+
+
+
+// Cart icon handel...........................................
+  function cartLength(){
+    $.get("http://127.0.0.1:8000/cartlength/", function(data) {
+        $('#cart').text(data);
+        if (data == 0){
+            mystr = `<br><br><h4 class="container text-center text-danger">Your cart is empty, please add some items in your cart!</h4>`
+            $('#items').append(mystr);
+            $("#checkout").hide();
+            }
+        });
+  };
+
+// update into API.............................................
+function updateApi(id,count,pri){
+    $.ajax({
+                type : 'PUT',
+                url : 'http://127.0.0.1:8000/viewcart/'+id,
+                data : {
+                    prod_id : id,
+                    user_id : 1,
+                    quantity : count,
+                    price : pri
+                },
+                headers: { "X-CSRFToken": csrftoken },
+                }).catch(function(err){
+                    console.log('Error is: ',err);
+                })
+};
+
+
+</script>
+
+{% endblock  %}
